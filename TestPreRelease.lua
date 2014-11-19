@@ -37,6 +37,7 @@ function TestPreRelease.readOutput(command)
 	local fd = io.popen(command)
 	local output = fd:read('*all')
 	fd:close()
+	output=string.trim(output)
 	return output
 end
 
@@ -45,27 +46,25 @@ end
 function TestPreRelease.testBranch()
 	local git = "git rev-parse --abbrev-ref HEAD"
 	local output = TestPreRelease.readOutput(git)
-	output=string.trim(output)
 	print("debug: '" .. output .. "'")
 	is_equal(output, TestPreRelease.release, "Branch is OK.")
 end
 
--- Test that Publican is able to build the book.
+-- Test that Publican is able to build the book. - not needed
 
-function TestPreRelease.testBuild()
-	local pubsingle = "nice -n 15 publican build '--langs=en-US' '--formats=html-single' | grep 'Finished html-single'"
-	local output = TestPreRelease.readOutput(pubsingle)
-	output=string.trim(output)
-	print("debug: '" .. output .. "'")
-	is_equal(output, "Finished html-single", "Build was successful.")
-end
+--function TestPreRelease.testBuild()
+--	local pubsingle = "nice -n 15 publican build '--langs=en-US' '--formats=html-single' | grep 'Finished html-single'"
+--	local output = TestPreRelease.readOutput(pubsingle)
+--	output=string.trim(output)
+--	print("debug: '" .. output .. "'")
+--	is_equal(output, "Finished html-single", "Build was successful.")
+--end
 
 -- Check that remarks are disabled.
 
 function TestPreRelease.testRemarks()
 	local remarks = "grep 'show_remarks: 0' publican.cfg"
 	local output = TestPreRelease.readOutput(remarks)
-	output=string.trim(output)
 	print("debug: '" .. output .. "'")
 	is_equal(output, "show_remarks: 0", "Remarks are disabled.")
 end
@@ -76,7 +75,6 @@ function TestPreRelease.testDraft()
 	local draft = "xmlstarlet sel -t -v 'book/@status' "
 	local command = draft .. TestPreRelease.rootfile .. " 2>/dev/null"
 	local output = TestPreRelease.readOutput(command)
-	output=string.trim(output)
 	print("debug: '" .. output .. "'")
 	is_unequal(output, "draft", "Draft watermark is not present.")
 end
