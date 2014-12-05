@@ -26,9 +26,9 @@ TestPreRelease = {
         changed = "2014-10-10",
         tags = {"Sanity", "XML"}
     },
-    requires = {"publican","git","xmlstarlet","xmllint"},
+    requires = {"git", "grep", "xmlstarlet","xmllint"},
     
-    -- Change this according to the current release and book!: → no longer needed it can be specified with emend --Xbrand=RedHat)
+    -- Change this according to the current release and book!: → no longer needed it can be specified with emend --Xbrand=RedHat
     release = "7.0_GA",
     language = "en-US",
     majorver = "7",
@@ -42,10 +42,18 @@ function TestPreRelease.setUp()
 	TestPreRelease.rootfile = TestPreRelease.findStartFile()
 
 end
+--TODO - verify, that the files really exist
 --- TODO - generate majorver a minorver
 --   majorver = string.sub(TestPreRelease.release,1,1)
---    minorver = string.sub(TestPreRelease.release,3,3)
+--   minorver = string.sub(TestPreRelease.release,3,3)
 
+--function TestPreRelease.generateMajorver()
+--	TestPreRelease.majover = string.sub(TestPreRelase.release, 1, 1)
+--end
+--
+--function TestPreRelease.generateMinorver()
+--	local minorver = string.find(TestPreRelease.release 
+--	TestPreRelease.minover = 
 
 --- Find the name of the first file of a book.
 --
