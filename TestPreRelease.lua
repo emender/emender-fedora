@@ -29,6 +29,7 @@ TestPreRelease = {
     requires = {"git", "grep", "xmlstarlet","xmllint"},
     
     -- Change this according to the current release and book!: → no longer needed it can be specified with emend --Xbrand=RedHat
+    --TODO - debug = 0
     release = "7.0_GA",
     language = "en-US",
     majorver = "7",
@@ -258,7 +259,7 @@ end
 
 -- A warning is returned when the author group is 'Engineering Content Services'.
 function TestPreRelease.testAuthorGroup()
-	local group = "xmlstarlet sel -t -v '/authorgroup/author/affiliation/orgdiv' en-US/Author_Group.xml | sort -u"
+	local group = "xmlstarlet sel -t -v '/authorgroup/author/affiliation/orgdiv' en-US/Author_Group.xml 2>/dev/null | sort -u"
 	local output = TestPreRelease.readOutput(group)
 	print ("debug: '" .. output .. "'")
 	if output ~= "Customer Content Services" then
@@ -283,7 +284,7 @@ end
 
 -- Check that there is not the edition tag in the Book_Info.xml file
 function TestPreRelease.testEdition()
-	local edition = "xmlstarlet sel -t -v '//edition' en-US/Book_Info.xml" 
+	local edition = "xmlstarlet sel -t -v '//edition' en-US/Book_Info.xml 2>/dev/null" 
 	local output = TestPreRelease.readOutput(edition)
 	print ("debug: '" .. output .. "'")
 	is_equal(output, "", "The edition tag is not present in the Book_Info.xml file")
@@ -291,7 +292,7 @@ end
 
 -- Check that there is not the pubsnumber tag in the Book_Info.xml file 
 function TestPreRelease.testPubsnumber()
-	local pubsnumber = "xmlstarlet sel -t -v '//pubsnumber' en-US/Book_Info.xml"
+	local pubsnumber = "xmlstarlet sel -t -v '//pubsnumber' en-US/Book_Info.xml 2>/dev/null"
 	local output = TestPreRelease.readOutput(pubsnumber)
 	print ("debug: '" .. output .. "'")
 	is_equal(output, "", "The pubsnumber tag is not present in the Book_Info.xml file")
@@ -320,7 +321,7 @@ end
 -- Check if the value of the productnumber tag is correct (for example 7).
 
 function TestPreRelease.GAProductNumber()
-	local product_number = "xmlstarlet sel -t -v 'bookinfo/productnumber' en-US/Book_Info.xml"
+	local product_number = "xmlstarlet sel -t -v 'bookinfo/productnumber' en-US/Book_Info.xml 2>/dev/null"
 	local output = TestPreRelease.readOutput(product_number)
 	print ("debug: '" .. output .. "'")
 	is_equal(output, TestPreRelease.majorver, "The product number in Book_Info.xml is correct.")
@@ -368,7 +369,7 @@ end
 
 -- Check that the value in the productnumber tag in Book_Info.xml is correct (for example 7.1-Beta)
 function TestPreRelease.BetaProductNumber()
-	local beta_product_number = "xmlstarlet sel -t -v 'bookinfo/productnumber' en-US/Book_Info.xml"
+	local beta_product_number = "xmlstarlet sel -t -v 'bookinfo/productnumber' en-US/Book_Info.xml 2>/dev/null"
 	local output = TestPreRelease.readOutput(beta_product_number)
 	print ("debug: '" .. output .. "'")
 	is_equal(output, TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " Beta", "The product number in Book_Info.xml is correct.")
