@@ -396,16 +396,13 @@ end
 
 function TestPreRelease.testRelease()
 	-- make it "case insensitive"
-	local upperBETA = string.upper(TestPreRelease.release)
-	local upperGA = string.upper(TestPreRelease.release)
-	local BETA = string.find(upperBETA, "BETA")
+	local upper = string.upper(TestPreRelease.ga_beta)
 	if BETA then
 		TestPreRelease.Disclaimer()
 		TestPreRelease.BetaVersion()
 		TestPreRelease.WebVersion()
 		TestPreRelease.BetaProductNumber()
 	end
-	local GA = string.find(upperGA, "GA")
 	if GA then
 		TestPreRelease.NoBeta()
 		TestPreRelease.NoDisclaimer()
