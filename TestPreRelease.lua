@@ -16,7 +16,7 @@
 -- along with Emender.  If not, see <http://www.gnu.org/licenses/>.
 
 
--- NOTE: this test must be run in the directory with the publican.cfg file.
+-- NOTE: this test must be run in the directory with the publican.cfg file. The release variable is equal to the name of the git branch (for example 7.1_Beta) and must be specified by the --X option when running emender - emend --Xrelease=7.1_Beta.
 
 TestPreRelease = {
     metadata = {
@@ -27,10 +27,8 @@ TestPreRelease = {
         tags = {"Sanity", "XML"}
     },
     requires = {"git", "grep", "xmlstarlet","xmllint"},
-    
-    -- Change this according to the current release and book!: → no longer needed it can be specified with emend --Xbrand=RedHat
     --TODO - debug = 0
-    release = "7.1_Beta",
+    --release = "7.1_Beta",
     language = "en-US",
     brand = "RedHat-201405",
     git_branch = "docs-rhel-6"
