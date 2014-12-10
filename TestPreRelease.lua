@@ -30,10 +30,8 @@ TestPreRelease = {
     
     -- Change this according to the current release and book!: → no longer needed it can be specified with emend --Xbrand=RedHat
     --TODO - debug = 0
-    release = "7.0_GA",
+    release = "7.1_Beta",
     language = "en-US",
-    majorver = "7",
-    minorver = "0",
     brand = "RedHat-201405",
     git_branch = "docs-rhel-6"
 }
@@ -41,23 +39,33 @@ TestPreRelease = {
 function TestPreRelease.setUp()
 	TestPreRelease.verifyPath()
 	TestPreRelease.rootfile = TestPreRelease.findStartFile()
-
+	TestPreRelease.majorver = string.sub(TestPreRelease.release, 1, 1)
+	TestPreRelease.generateMinorver()
+	--if not TestPreRelease.verifyUsedFiles() then return end
 end
---TODO - verify, that the files really exist
---- TODO - generate majorver a minorver
---   majorver = string.sub(TestPreRelease.release,1,1)
---   minorver = string.sub(TestPreRelease.release,3,3)
 
---function TestPreRelease.generateMajorver()
---	TestPreRelease.majover = string.sub(TestPreRelase.release, 1, 1)
---end
---
---function TestPreRelease.generateMinorver()
---	local minorver = string.find(TestPreRelease.release 
---	TestPreRelease.minover = 
+-- Generate the TestPreRelease.minorver global variable
+function TestPreRelease.generateMinorver()
+       local minorver = string.match(TestPreRelease.release, "%.(%d+)[-_]")
+       print(minorver)
+       TestPreRelease.minorver = minorver
+end
+
+--Verify that the en-US/Author_Group.xml, en-US/Book_Info.xml files exist.
+function TestPreRelease.verifyUsedFiles()
+	if not TestPreRelease.checkFile("en-US/Author_Group.xml", "er") then
+    		fail("The Author_Group.xml file does not exist.")
+    		return false
+  	end
+	if not TestPreRelease.checkFile("en-US/Book_Info.xml", "er") then
+    		fail("The Book_Info.xml file does not exist.")
+    		return false
+  	end
+	return true
+end
 
 --- Find the name of the first file of a book.
---
+
 -- @return Returns path of a file where the book starts.
 function TestPreRelease.findStartFile()
   -- Checks if publican.cfg exists.
@@ -110,7 +118,7 @@ end
 --  readable or writeable.
 --
 -- @param file_path Path to the file which should be checked.
--- @param test_type Type of test. Posibilities:
+-- @param test_type Type of test. Possibilities:
 --                                    "e" - exists
 --                                    "r" - is readable
 --                                    "w" - is writeable
@@ -298,7 +306,14 @@ function TestPreRelease.testPubsnumber()
 	is_equal(output, "", "The pubsnumber tag is not present in the Book_Info.xml file")
 end
 
---TODO author group - check that the first entry in author group has everything filled up.
+-- Check that the first author group entry in Author_Group.xml has an email filled up.
+
+function TestPreRelease.testAuthor()
+	local author = "xmlstarlet sel -t -v '/authorgroup/author[1]' en-US/Author_Group.xml 2>/dev/null| grep -q @redhat.com;echo $?"
+	local output = TestPreRelease.readOutput(author)
+	print ("debug: '" .. output .. "'")
+	is_equal(output, "0", "The first author group entry has an email filled up.")
+end
 
 --- GA release specific checks:
 
@@ -329,18 +344,6 @@ end
 	
 -- TODO Check the Revision History (later)
 
--- When the release is GA, run the following tests:
-function TestPreRelease.testGA()
-	-- make it "case insensitive"
-	local upperGA = string.upper(TestPreRelease.release)
-	local GA = string.find(upperGA, "GA")
-	if GA then
-		TestPreRelease.NoBeta()
-		TestPreRelease.NoDisclaimer()
-		TestPreRelease.GAProductNumber()
-	end
-end
-
 --- Beta release specific checks:
 
 -- Check that there is the Beta disclaimer
@@ -367,7 +370,7 @@ function TestPreRelease.WebVersion()
 	is_equal(output, "\"" .. TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " Beta" .. "\"", "The web_version_label in publican.cfg is correct.")
 end
 
--- Check that the value in the productnumber tag in Book_Info.xml is correct (for example 7.1-Beta)
+-- Check that the value in the productnumber tag in Book_Info.xml is correct (for example 7.1 Beta)
 function TestPreRelease.BetaProductNumber()
 	local beta_product_number = "xmlstarlet sel -t -v 'bookinfo/productnumber' en-US/Book_Info.xml 2>/dev/null"
 	local output = TestPreRelease.readOutput(beta_product_number)
@@ -377,14 +380,22 @@ end
 
 -- TODO Check the Revision History (later)
 
-function TestPreRelease.testBeta()
+function TestPreRelease.testRelease()
+	-- make it "case insensitive"
 	local upperBETA = string.upper(TestPreRelease.release)
+	local upperGA = string.upper(TestPreRelease.release)
 	local BETA = string.find(upperBETA, "BETA")
 	if BETA then
 		TestPreRelease.Disclaimer()
 		TestPreRelease.BetaVersion()
 		TestPreRelease.WebVersion()
 		TestPreRelease.BetaProductNumber()
+	end
+	local GA = string.find(upperGA, "GA")
+	if GA then
+		TestPreRelease.NoBeta()
+		TestPreRelease.NoDisclaimer()
+		TestPreRelease.GAProductNumber()
 	end
 end
 
