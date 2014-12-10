@@ -38,14 +38,22 @@ function TestPreRelease.setUp()
 	TestPreRelease.rootfile = TestPreRelease.findStartFile()
 	TestPreRelease.majorver = string.sub(TestPreRelease.release, 1, 1)
 	TestPreRelease.generateMinorver()
+	TestPreRelease.generateGA_Beta()
 	if not TestPreRelease.verifyUsedFiles() then return end
 end
 
 -- Generate the TestPreRelease.minorver global variable
 function TestPreRelease.generateMinorver()
-       local minorver = string.match(TestPreRelease.release, "%.(%d+)[-_]")
+       local minorver = string.match(TestPreRelease.release, "%.(%d+)[%-_]")
        print(minorver)
        TestPreRelease.minorver = minorver
+end
+
+-- Generate the TestPreRelease.ga_beta global variable
+function TestPreRelease.generateGA_Beta()
+	local ga_beta = string.match(TestPreRelease.release, "[%-_](%w+)")
+	print(ga_beta)
+	TestPreRelease.ga_beta = ga_beta
 end
 
 --Verify that the en-US/Author_Group.xml, en-US/Book_Info.xml files exist.
@@ -56,6 +64,10 @@ function TestPreRelease.verifyUsedFiles()
   	end
 	if not TestPreRelease.checkFile("en-US/Book_Info.xml", "er") then
     		fail("The Book_Info.xml file does not exist.")
+    		return false
+  	end
+	if not TestPreRelease.checkFile("en-US/Revision_History.xml", "er") then
+    		fail("The Revision_History.xml file does not exist.")
     		return false
   	end
 	return true
@@ -304,12 +316,20 @@ function TestPreRelease.testPubsnumber()
 end
 
 -- Check that the first author group entry in Author_Group.xml has an email filled up.
-
 function TestPreRelease.testAuthor()
 	local author = "xmlstarlet sel -t -v '/authorgroup/author[1]' en-US/Author_Group.xml 2>/dev/null| grep -q @redhat.com;echo $?"
 	local output = TestPreRelease.readOutput(author)
 	print ("debug: '" .. output .. "'")
 	is_equal(output, "0", "The first author group entry has an email filled up.")
+end
+
+-- Check the first entry in the Revision_History.xml file.
+function TestPreRelease.testHistory()
+	local history = "xmlstarlet sel -t -v '//member[1]' en-US/Revision_History.xml 2>/dev/null"
+--	string.gsub(history, "%s+", "")
+	local output = TestPreRelease.readOutput(history)
+	print ("debug: '" .. output .. "'")
+	is_like(output, TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " " .. TestPreRelease.ga_beta, "The first entry in Revision history points to correct release.")
 end
 
 --- GA release specific checks:
@@ -339,7 +359,6 @@ function TestPreRelease.GAProductNumber()
 	is_equal(output, TestPreRelease.majorver, "The product number in Book_Info.xml is correct.")
 end
 	
--- TODO Check the Revision History (later)
 
 --- Beta release specific checks:
 
@@ -374,8 +393,6 @@ function TestPreRelease.BetaProductNumber()
 	print ("debug: '" .. output .. "'")
 	is_equal(output, TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " Beta", "The product number in Book_Info.xml is correct.")
 end
-
--- TODO Check the Revision History (later)
 
 function TestPreRelease.testRelease()
 	-- make it "case insensitive"
