@@ -28,7 +28,6 @@ TestPreRelease = {
     },
     requires = {"git", "grep", "xmlstarlet","xmllint"},
     --TODO - debug = 0
-    --release = "7.1_Beta",
     language = "en-US",
     brand = "RedHat-201405",
     git_branch = "docs-rhel-6"
@@ -39,7 +38,7 @@ function TestPreRelease.setUp()
 	TestPreRelease.rootfile = TestPreRelease.findStartFile()
 	TestPreRelease.majorver = string.sub(TestPreRelease.release, 1, 1)
 	TestPreRelease.generateMinorver()
-	--if not TestPreRelease.verifyUsedFiles() then return end
+	if not TestPreRelease.verifyUsedFiles() then return end
 end
 
 -- Generate the TestPreRelease.minorver global variable
