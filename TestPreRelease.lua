@@ -336,7 +336,7 @@ function TestPreRelease.testHistory()
 --	string.gsub(history, "%s+", "")
 	local output = TestPreRelease.readOutput(history)
 	print ("debug: '" .. output .. "'")
-	is_like(output, TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " " .. TestPreRelease.ga_beta, "The first entry in Revision history points to correct release.")
+	is_like(output, TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " " .. TestPreRelease.ga_beta, "The first entry in Revision history points to the correct release.")
 end
 
 --- GA release specific checks:
@@ -404,13 +404,14 @@ end
 function TestPreRelease.testRelease()
 	-- make it "case insensitive"
 	local upper = string.upper(TestPreRelease.ga_beta)
-	if BETA then
+	print(upper)
+	if upper == "BETA" then
 		TestPreRelease.Disclaimer()
 		TestPreRelease.BetaVersion()
 		TestPreRelease.WebVersion()
 		TestPreRelease.BetaProductNumber()
 	end
-	if GA then
+	if upper == "GA" then
 		TestPreRelease.NoBeta()
 		TestPreRelease.NoDisclaimer()
 		TestPreRelease.GAProductNumber()
