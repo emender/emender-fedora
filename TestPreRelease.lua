@@ -238,8 +238,6 @@ end
 
 --- Test for both releases
 
-
-
 -- Check that remarks are disabled.
 function TestPreRelease.testRemarks()
        local remarks = "grep 'show_remarks: 0' publican.cfg"
@@ -249,6 +247,7 @@ function TestPreRelease.testRemarks()
 end
 
 -- Check the correct brand
+-- TODO modify sed command to return also "RedHat"
 function TestPreRelease.testBrand()
        local brand = "grep brand publican.cfg | sed 's/brand:\\(.*\\)/\\1/'"
        local output = TestPreRelease.readOutput(brand)
@@ -257,11 +256,12 @@ function TestPreRelease.testBrand()
 end
 
 -- Check the correct git-branch in publican.cfg
+-- TODO is this needed?
 function TestPreRelease.testGitBranch()
        local git_branch = "grep git_branch publican.cfg | sed 's/git_branch:\\(.*\\)/\\1/'"
        local output = TestPreRelease.readOutput(git_branch)
        print("debug: '" .. output .. "'")
-       is_equal(output, TestPreRelease.git_branch, "Git-branch is correct.")
+       is_equal(output, TestPreRelease.git_branch, "The git_branch tag in publican.cfg is correct.")
 end
 
 -- Check that there are no cvs_* labels in publican.cfg
