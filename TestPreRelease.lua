@@ -40,6 +40,7 @@ function TestPreRelease.setUp()
 	TestPreRelease.generateMinorver()
 	TestPreRelease.generateGA_Beta()
 	if not TestPreRelease.verifyUsedFiles() then return end
+	TestPreRelease.testBranch()
 end
 
 -- Generate the TestPreRelease.minorver global variable
@@ -71,6 +72,18 @@ function TestPreRelease.verifyUsedFiles()
     		return false
   	end
 	return true
+end
+
+-- Test if you are in the correct branch for example 7.0_GA, 7.1_Beta.
+function TestPreRelease.testBranch()
+	local find_gitcongif = "test -f .git/config;echo $?"
+	if find_gitconfig == 0 then
+		local git = "git rev-parse --abbrev-ref HEAD"
+		local output = TestPreRelease.readOutput(git)
+		print("debug: '" .. output .. "'")
+		is_equal(output, TestPreRelease.release, "The git branch is correct.")
+	else warn("You are not in a git repository, could not verify the correct git branch.")
+	end
 end
 
 --- Find the name of the first file of a book.
@@ -225,14 +238,6 @@ end
 
 --- Test for both releases
 
--- Test if you are in the correct branch for example 7.0_GA, 7.1_Beta.
-function TestPreRelease.testBranch()
-	local git = "git rev-parse --abbrev-ref HEAD"
-	local output = TestPreRelease.readOutput(git)
-	print("debug: '" .. output .. "'")
-	is_equal(output, TestPreRelease.release, "Branch is OK.")
-end
-
 -- Check that remarks are disabled.
 function TestPreRelease.testRemarks()
        local remarks = "grep 'show_remarks: 0' publican.cfg"
@@ -242,6 +247,7 @@ function TestPreRelease.testRemarks()
 end
 
 -- Check the correct brand
+-- TODO modify sed command to return also "RedHat"
 function TestPreRelease.testBrand()
        local brand = "grep brand publican.cfg | sed 's/brand:\\(.*\\)/\\1/'"
        local output = TestPreRelease.readOutput(brand)
@@ -250,11 +256,12 @@ function TestPreRelease.testBrand()
 end
 
 -- Check the correct git-branch in publican.cfg
+-- TODO is this needed?
 function TestPreRelease.testGitBranch()
        local git_branch = "grep git_branch publican.cfg | sed 's/git_branch:\\(.*\\)/\\1/'"
        local output = TestPreRelease.readOutput(git_branch)
        print("debug: '" .. output .. "'")
-       is_equal(output, TestPreRelease.git_branch, "Git-branch is correct.")
+       is_equal(output, TestPreRelease.git_branch, "The git_branch tag in publican.cfg is correct.")
 end
 
 -- Check that there are no cvs_* labels in publican.cfg
@@ -267,7 +274,7 @@ end
 
 -- Check that there is no draft watermark
 function TestPreRelease.testDraft()
-	local draft = "xmlstarlet sel -t -v 'book/@status' "
+	local draft = "xmlstarlet sel -t -v 'book/@status'"
 	local command = draft .. TestPreRelease.rootfile .. " 2>/dev/null"
 	local output = TestPreRelease.readOutput(command)
 	print("debug: '" .. output .. "'")
