@@ -434,14 +434,14 @@ function TestPreRelease.testRelease()
 	end
 end
 
---- Check that there is the sort_order tag in publican.cfg for RHEL 7 releases. 
+--- Check that there is the sort_order tag in publican.cfg for RHEL 6 and 7 releases. 
 function TestPreRelease.testSortOrder()
--- if TestPreRelease.majorver == "7" then
+	if TestPreRelease.majorver == "7" or TestPreRelease.majorver == "6" then
 		local sort_order = "grep -q sort_order publican.cfg;echo $?"
 		local output = TestPreRelease.readOutput(sort_order)
 		TestPreRelease.printDebug(output)
 		is_equal(output, "0", "There is the sort_order tag in publican.cfg")
---	end
+	end
 end
 
 
