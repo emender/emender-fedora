@@ -16,11 +16,11 @@
 -- along with Emender.  If not, see <http://www.gnu.org/licenses/>.
 
 
--- NOTE: this test must be run in the directory with the publican.cfg file. The release variable is equal to the name of the git branch (for example 7.1_Beta) and must be specified by the --X option when running emender - emend --Xrelease=7.1_Beta.
+-- NOTE: this test must be run in the directory with the publican.cfg file. The release variable is equal to current release number (for example 21) and must be specified by the --X option when running emender - emend --Xrelease=21.
 
 TestPreRelease = {
     metadata = {
-        description = "Test if a book is ready for a GA or Beta release.",
+        description = "Test if a book is ready for a release.",
         authors = "Barbora Ancincova",
         emails = "bancinco@redhat.com",
         changed = "2014-12-16",
@@ -30,16 +30,12 @@ TestPreRelease = {
     -- TODO does not really work - print debug info allways
     debug = "0",
     language = "en-US",
-    brand = "RedHat-201405",
-    git_branch = "docs-rhel-6"
+    brand = "fedora"
 }
 
 function TestPreRelease.setUp()
 	TestPreRelease.verifyPath()
 	TestPreRelease.rootfile = TestPreRelease.findStartFile()
-	TestPreRelease.majorver = string.sub(TestPreRelease.release, 1, 1)
-	TestPreRelease.generateMinorver()
-	TestPreRelease.generateGA_Beta()
 	if not TestPreRelease.verifyUsedFiles() then return end
 	TestPreRelease.testBranch()
 end
@@ -49,18 +45,6 @@ function TestPreRelease.printDebug(message)
 	if TestPreRelease.debug ~= 0 then
 	io.stderr:write("DEBUG: '" .. message .. "'\n\n")
 	end
-end
-
--- Generate the TestPreRelease.minorver global variable
-function TestPreRelease.generateMinorver()
-       local minorver = string.match(TestPreRelease.release, "%.(%d+)[%-_]")
-       TestPreRelease.minorver = minorver
-end
-
--- Generate the TestPreRelease.ga_beta global variable
-function TestPreRelease.generateGA_Beta()
-	local ga_beta = string.match(TestPreRelease.release, "[%-_](%w+)")
-	TestPreRelease.ga_beta = ga_beta
 end
 
 --Verify that the en-US/Author_Group.xml, en-US/Book_Info.xml files exist.
@@ -81,17 +65,17 @@ function TestPreRelease.verifyUsedFiles()
 end
 
 -- Test if you are in the correct branch for example 7.0_GA, 7.1_Beta.
-function TestPreRelease.testBranch()
-	local find_gitcongif = "test -f .git/config;echo $?"
-       	local output = TestPreRelease.readOutput(find_gitcongif)
-	if output == "0" then
-		local git = "git rev-parse --abbrev-ref HEAD"
-		local output = TestPreRelease.readOutput(git)
---		print("debug: '" .. output .. "'")
-		is_equal(output, TestPreRelease.release, "The git branch is correct: Got: " .. "\"" .. output .. "\"")
-	else warn("Could not verify the correct git branch. Either the test is ran in a non-git repository or in other branch then Beta or GA.")
-	end
-end
+-- TODO - do we need this in Fedora (should we establish the same workflow?)
+--function TestPreRelease.testBranch()
+--	local find_gitcongif = "test -f .git/config;echo $?"
+--       	local output = TestPreRelease.readOutput(find_gitcongif)
+--	if output == "0" then
+--		local git = "git rev-parse --abbrev-ref HEAD"
+--		local output = TestPreRelease.readOutput(git)
+--		is_equal(output, TestPreRelease.release, "The git branch is correct: Got: " .. "\"" .. output .. "\"")
+--	else warn("Could not verify the correct git branch. Either the test is ran in a non-git repository or in other branch then Beta or GA.")
+--	end
+--end
 
 --- Find the name of the first file of a book.
 
@@ -243,8 +227,6 @@ function TestPreRelease.readOutput(command)
 	return output
 end
 
---- Tests for both releases
-
 -- Check that remarks are disabled.
 function TestPreRelease.testRemarks()
        	local remark_tag = "grep -q 'show_remarks:' publican.cfg;echo $?"
@@ -269,27 +251,6 @@ function TestPreRelease.testBrand()
        	is_equal(output, TestPreRelease.brand, "The brand specified in the publican.cfg file is correct.  Got: " .. "\"" .. output .. "\"")
 end
 
--- Check the correct git-branch in publican.cfg
-function TestPreRelease.testGitBranch()
-	local find_gitcongif = "test -f .git/config;echo $?"
-       	local output = TestPreRelease.readOutput(find_gitcongif)
-	if output == "0" then
-		local git_branch = "grep git_branch publican.cfg | sed 's/git_branch:\\(.*\\)/\\1/'"
-       		local output = TestPreRelease.readOutput(git_branch)
-		TestPreRelease.printDebug(output)
-       		is_equal(output, TestPreRelease.git_branch, "The git_branch tag in the publican.cfg file is correct. Got: " .. "\"" .. output .. "\"")
-	else warn("The git_branch tag was not found in the publican.cfg file.")
-	end
-end
-
--- Check that there are no cvs_* labels in publican.cfg
-function TestPreRelease.testCVSlabels()
-	local CVS = "grep -e 'cvs_*' publican.cfg"
-	local output = TestPreRelease.readOutput(CVS)
-	TestPreRelease.printDebug(output)
-	is_unlike(output, "cvs_*", "CVS labels are not present in publican.cfg.")
-end
-
 -- Check that there is no draft watermark
 function TestPreRelease.testDraft()
 	local draft = "xmlstarlet sel -t -v 'book/@status' "
@@ -299,17 +260,8 @@ function TestPreRelease.testDraft()
 	is_unequal(output, "draft", "The draft watermark is not present.")
 end
 
--- A warning is returned when the author group is 'Engineering Content Services'.
-function TestPreRelease.testAuthorGroup()
-	local group = "xmlstarlet sel -t -v '/authorgroup/author/affiliation/orgdiv' en-US/Author_Group.xml 2>/dev/null | sort -u"
-	local output = TestPreRelease.readOutput(group)
-	TestPreRelease.printDebug(output)
-	if output ~= "Customer Content Services" then
-		warn ("The team name is incorrect (it is supposed to be 'Customer Content Services'). Got: " .. "\"" .. output .. "\"")
-	end
-end
-
 -- Check that there is no Preface.xml and Glossary.xml included in the root file of the book.
+-- TODO not sure we need this in Fedora?
 function TestPreRelease.testPreface()
 	local preface = "xmlstarlet sel -N xi='http://www.w3.org/2001/XInclude' -t -v '//xi:include/@href' " .. TestPreRelease.rootfile .. " 2>/dev/null | grep -q Preface.xml;echo $?"
 	local output = TestPreRelease.readOutput(preface)
@@ -340,110 +292,15 @@ function TestPreRelease.testPubsnumber()
 	is_equal(output, "", "The pubsnumber tag is not present in the Book_Info.xml file")
 end
 
--- Check that the first author group entry in Author_Group.xml has an email filled up.
-function TestPreRelease.testAuthor()
-	local author = "xmlstarlet sel -t -v '/authorgroup/author[1]' en-US/Author_Group.xml 2>/dev/null| grep -q @redhat.com;echo $?"
-	local output = TestPreRelease.readOutput(author)
-	TestPreRelease.printDebug(output)
-	is_equal(output, "0", "The first author group entry has an email filled up.")
-end
-
 -- Check the first entry in the Revision_History.xml file.
 -- TODO make it just to info - warn - How?
+-- TODO how is this done with Fedora? What are the guidelines - do we add something to the Rev history? Is it necessary?
 function TestPreRelease.testHistory()
 	local history = "xmlstarlet sel -t -v '//member[1]' en-US/Revision_History.xml 2>/dev/null"
 	local output = TestPreRelease.readOutput(history)
 	TestPreRelease.printDebug(output)
-	is_like(output, TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " " .. TestPreRelease.ga_beta, "The first entry in Revision history points to the correct release. Got: " .. "\"" .. output .. "\"")
+	is_like(output, "Fedora" .. TestPreRelease.release, "The first entry in Revision history points to the correct release. Got: " .. "\"" .. output .. "\"")
 end
-
---- GA release specific checks:
-
--- Check if there are any beta labels in the publican.cfg file.
-function TestPreRelease.NoBeta()
-	local beta = "grep -iq 'beta' publican.cfg;echo $?"
-	local output = TestPreRelease.readOutput(beta)
-	TestPreRelease.printDebug(output)
-	is_equal(output, "1" , "There are no beta labels in the publican.cfg file.")
-end
-
--- Check that there is no Beta disclaimer.
-function TestPreRelease.NoDisclaimer()
-	local disclaimer = "grep -q 'This document is under development' en-US/Book_Info.xml 2>/dev/null;echo $?"
-	local output = TestPreRelease.readOutput(disclaimer)
-	TestPreRelease.printDebug(output)
-	is_equal(output, "1", "There is no Beta disclaimer.")
-end
-
--- Check if the value of the productnumber tag is correct (for example 7).
-
-function TestPreRelease.GAProductNumber()
-	local product_number = "xmlstarlet sel -t -v 'bookinfo/productnumber' en-US/Book_Info.xml 2>/dev/null"
-	local output = TestPreRelease.readOutput(product_number)
-	TestPreRelease.printDebug(output)
-	is_equal(output, TestPreRelease.majorver, "The product number in the Book_Info.xml file is correct. Got: " .. "\"" .. output .. "\"")
-end
-	
---- Beta release specific checks:
-
--- Check that there is the Beta disclaimer
-function TestPreRelease.Disclaimer()
-	local disclaimer = "grep -q 'This document is under development' en-US/Book_Info.xml 2>/dev/null;echo $?"
-	local output = TestPreRelease.readOutput(disclaimer)
-	TestPreRelease.printDebug(output)
-	is_equal(output, "0", "There is the Beta disclaimer.")
-end
-
--- Check that the version tag in publican.cfg is correct (for example: 7-Beta):
-function TestPreRelease.BetaVersion()
-	local version = "grep -e '^version' publican.cfg | sed 's/version:\\(.*\\)/\\1/'"
-	local output = TestPreRelease.readOutput(version)
-	TestPreRelease.printDebug(output)
-	is_equal(output, TestPreRelease.majorver .. "-Beta", "The version tag in publican.cfg is correct. Got: " .. "\"" .. output "\"")
-end
-
--- Check that the web_version_label tag in publican.cfg is correct (for example: "7.1 Beta"):
-function TestPreRelease.WebVersion()
-	local web_version = "grep  web_version_label publican.cfg | sed 's/web_version_label:\\(.*\\)/\\1/'"
-	local output = TestPreRelease.readOutput(web_version)
-	TestPreRelease.printDebug(output)
-	is_equal(output, "\"" .. TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " Beta" .. "\"", "The web_version_label in publican.cfg is correct. Got: " .. "\"" .. output .. "\"")
-end
-
--- Check that the value in the productnumber tag in Book_Info.xml is correct (for example 7.1 Beta)
-function TestPreRelease.BetaProductNumber()
-	local beta_product_number = "xmlstarlet sel -t -v 'bookinfo/productnumber' en-US/Book_Info.xml 2>/dev/null"
-	local output = TestPreRelease.readOutput(beta_product_number)
-	TestPreRelease.printDebug(output)
-	is_equal(output, TestPreRelease.majorver .. "." .. TestPreRelease.minorver .. " Beta", "The product number in Book_Info.xml is correct. Got: " .. "\"" .. output .."\"")
-end
-
-function TestPreRelease.testRelease()
-	-- make it "case insensitive"
-	local upper = string.upper(TestPreRelease.ga_beta)
-	if upper == "BETA" then
-		TestPreRelease.Disclaimer()
-		TestPreRelease.BetaVersion()
-		TestPreRelease.WebVersion()
-		TestPreRelease.BetaProductNumber()
-	end
-	if upper == "GA" then
-		TestPreRelease.NoBeta()
-		TestPreRelease.NoDisclaimer()
-		TestPreRelease.GAProductNumber()
-	end
-end
-
---- Check that there is the sort_order tag in publican.cfg for RHEL 6 and 7 releases. 
-function TestPreRelease.testSortOrder()
-	if TestPreRelease.majorver == "7" or TestPreRelease.majorver == "6" then
-		local sort_order = "grep -q sort_order publican.cfg;echo $?"
-		local output = TestPreRelease.readOutput(sort_order)
-		TestPreRelease.printDebug(output)
-		is_equal(output, "0", "There is the sort_order tag in publican.cfg")
-	end
-end
-
 
 
 -- Check the correct version of the package - nice to have
