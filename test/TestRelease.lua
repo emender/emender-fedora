@@ -27,7 +27,6 @@ TestRelease = {
         tags = {"Sanity", "XML"}
     },
     requires = {"git", "grep", "xmlstarlet","xmllint"},
-    -- TODO does not really work - print debug info allways
     debug = "0",
     language = "en-US",
     brand = "fedora"
@@ -42,7 +41,7 @@ end
 
 -- Print debugging information to standard error output
 function TestRelease.printDebug(message)
-    if TestRelease.debug ~= 0 then
+    if TestRelease.debug ~= "0" then
     io.stderr:write("DEBUG: '" .. message .. "'\n\n")
     end
 end
