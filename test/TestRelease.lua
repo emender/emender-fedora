@@ -29,7 +29,8 @@ TestRelease = {
     requires = {"git", "grep", "xmlstarlet","xmllint"},
     debug = "0",
     language = "en-US",
-    brand = "fedora"
+    brand = "fedora",
+    path = ""
 }
 
 function TestRelease.setUp()
@@ -115,13 +116,8 @@ end
 
 -- Function which checks if path is set or not.
 function TestRelease.verifyPath()
-    if TestRelease.path then
-        if not TestRelease.checkFile(TestRelease.path, "ed") then
-            fail("Book directory doesn't exist.")
-        end
-    else
-        -- Set empty string as a path.
-        TestRelease.path = ""
+    if TestRelease.path ~= "" and not TestRelease.checkFile(TestRelease.path, "ed") then
+        fail("Book directory doesn't exist.")
     end
 end
 
