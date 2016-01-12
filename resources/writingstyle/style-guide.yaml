@@ -1,0 +1,24 @@
+- key word one:
+    desc: LoremIpsum
+    type: word
+    class: noun
+    use_it: yes
+    refers: [key word three]
+- topic one:
+    desc: Lorem “can” Ipsum.
+    type: topic
+    class:
+    use_it:
+    refers: [topic two]
+- key word two:
+    desc: donor sit amet.
+    type: word
+    class: verb
+    use_it: no
+    refers: []
+- key word three:
+    desc:
+    type: word
+    class: verb
+    use_it: avoid
+    refers: [key word two, key word one]
