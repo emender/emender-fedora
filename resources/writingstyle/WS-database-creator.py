@@ -17,11 +17,6 @@ db_file = "writing_style.db"
 opened_yaml = None
 opened_db = None
 
-"""
-    TODO: read number and names of parameters from database schema.
-    TODO: use_it can be: yes, no and avoid
-"""
-
 
 """
     Load YAML file and transform it into python representation.
@@ -72,6 +67,16 @@ def load_db():
     Add information about one word into database.
 """
 def add_this_item_into_db(one_item):
+    # Remove automatic substituting yes and no words by boolean values
+    if one_item["use_it"] == "avoid":
+        one_item["use_it"] = "avoid"
+    elif one_item["use_it"]:
+        one_item["use_it"] = "yes"
+    elif one_item["use_it"] == None:
+        one_item["use_it"] = None
+    else:
+        one_item["use_it"] = "no"
+
     global opened_db
 
     # Create cursor for inserting data to the database.
