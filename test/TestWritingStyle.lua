@@ -41,7 +41,7 @@ function TestWritingStyle.getIncorrectWords()
     end
 
     -- Compose command which gets data from database.
-    local command = "sqlite3 \"" .. TestWritingStyle.dbFile .. "\" 'SELECT name FROM item WHERE type=\"word\" AND use_it=0;'"
+    local command = "sqlite3 \"" .. TestWritingStyle.dbFile .. "\" 'SELECT name FROM item WHERE type=\"word\" AND (use_it=\"no\" OR use_it=\"avoid\");'"
 
     -- Execute command, capture its output and output it.
     local dbOutput = execCaptureOutputAsTable(command)
@@ -68,7 +68,7 @@ function TestWritingStyle.getCorrectWords()
     local sqlObj = sql.create(TestWritingStyle.dbFile)
 
     -- Compose command which gets data from database.
-    local command = "SELECT name FROM item WHERE type='word' AND use_it=1"
+    local command = "SELECT name FROM item WHERE type='word' AND use_it='yes'"
 
     -- Execute command, capture its output and output it.
     local dbOutput = sqlObj:executeQueryGetAll(command)
