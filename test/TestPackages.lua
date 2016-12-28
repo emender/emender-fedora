@@ -22,14 +22,14 @@ TestPackages = {
         changed = "2015-28-12",
         tags = {"DocBook", "Release"},
     },
-    requires = {"curl", "sqlite3", "unxz"},
+    requires = {"curl", "sqlite3", "unxz", "bunzip2"},
     repodirPath = "/tmp/repoDatabase/",
     docObj = nil,
     xmlObj = nil,
     pubObj = nil,
     --======================= Configurable variables =========================--
     product = "Fedora",
-    version = "23",
+    version = "24",
     architectures = "x86_64", -- Order of architectures determines the order of repositories in which the test tries to find package.
     beta = 0,
     strict = 0,
@@ -37,20 +37,20 @@ TestPackages = {
     packageWhiteList = "",
     lowestSupportedVersion = 21,
     --------------------------------- URLS -------------------------------------
-    repoTable = {["f21-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/21/Everything/x86_64/os"},
-                 ["f21-debuginfo-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/21/Everything/x86_64/debug"},
-                 ["f21-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/21/Everything/i386/os"},
-                 ["f21-debuginfo-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/21/Everything/i386/debug"},
-
-                 ["f22-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/22/Everything/x86_64/os"},
-                 ["f22-debuginfo-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/22/Everything/x86_64/debug"},
-                 ["f22-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/22/Everything/i386/os"},
-                 ["f22-debuginfo-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/22/Everything/i386/debug"},
-
-                 ["f23-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/23/Everything/x86_64/os"},
+    repoTable = {["f23-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/23/Everything/x86_64/os"},
                  ["f23-debuginfo-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/23/Everything/x86_64/debug"},
                  ["f23-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/23/Everything/i386/os"},
-                 ["f23-debuginfo-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/23/Everything/i386/debug"}
+                 ["f23-debuginfo-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/23/Everything/i386/debug"},
+
+                 ["f24-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/24/Everything/x86_64/os"},
+                 ["f24-debuginfo-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/24/Everything/x86_64/debug/tree"},
+                 ["f24-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/24/Everything/i386/os"},
+                 ["f24-debuginfo-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/24/Everything/i386/debug/tree"},
+
+                 ["f25-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/25/Everything/x86_64/os"},
+                 ["f25-debuginfo-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/25/Everything/x86_64/debug/tree"},
+                 ["f25-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/25/Everything/i386/os"},
+                 ["f25-debuginfo-i386"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/25/Everything/i386/debug/tree"}
 				},
                  -- ["f23-debuginfo"]={["url"]="http://mirror.vutbr.cz/fedora/releases/23/Workstation/debug/os"},
                  -- FORMAT OF THIS TABLE IS:
@@ -58,7 +58,9 @@ TestPackages = {
                         -- dir name has to start with abbreviation of product and version which is written in table below.
                         -- dir_name has to end with architecture name.
     ----------------------------- Abbreviations --------------------------------
-    abbreviationsList = {["Fedora 21"] = "f21", ["Fedora 22"] = "f22", ["Fedora 23"] = "f23"},
+    abbreviationsList = {["Fedora 23"] = "f23", ["Fedora 24"] = "f24", ["Fedora 25"] = "f25"},
+    -- Format {[".extension"]="unziptool", [".ext2"]... }
+    unzipTools = {[".xz"] = "unxz -c", [".bz2"] = "bunzip2 -d"},
     --========================================================================--
     packageNamesPackageTag = {},
     packageNamesCommandTag = {},
@@ -479,9 +481,16 @@ end
 --
 --  @param dbFilePath destination path
 --  @return true when unapcking is successful. nil otherwise.
-function TestPackages.unpackFile(dbFilePath)
-    -- Compose command for unziping database and remove unuseful file.
-    command = "unxz -c \"" .. dbFilePath .. ".xz\" > \"" .. dbFilePath .. "\" && rm -f \"" .. dbFilePath .. ".xz\""
+function TestPackages.unpackFile(dbFilePath, ext)
+    local unzip_cmd = TestPackages.unzipTools[ext]
+
+    -- Compose command for unziping database and remove unuseful file. > \"" .. dbFilePath .. "\"
+    local command = ""
+    if ext == ".bz2" then
+        command = unzip_cmd .. " \"" .. dbFilePath .. ext .. "\" && rm -f \"" .. dbFilePath .. ext .. "\""
+    else
+        command = unzip_cmd .. " \"" .. dbFilePath .. ext .. "\" > \"" .. dbFilePath .. "\" && rm -f \"" .. dbFilePath .. ext .. "\""
+    end
 
     -- Execute command.
     execCaptureOutputAsString(command)
@@ -497,19 +506,34 @@ end
 
 
 --
+--- Get the extension of file.
+--
+-- @param str the path to the file
+function TestPackages.getExtension(str)
+    local getExt = str:gmatch(".*(%.[%w]+)")
+    local ext = getExt()
+
+    return ext
+
+end
+
+
+--
 --- Donwloads and unpacks database file.
 --
 --  @param dbLink link to the database file
 --  @param dbFilePath path to the database file.
 --  @return true if everything is correct, nil otherwise.
 function TestPackages.fetchDatabaseFile(dbLink, dbFilePath)
+    local ext = TestPackages.getExtension(dbLink)
+
     -- Download database file.
-    if not TestPackages.downloadFile(dbLink, dbFilePath .. ".xz") then
+    if not TestPackages.downloadFile(dbLink, dbFilePath .. ext) then
         return nil
     end
 
     -- Unpack database file.
-    if not TestPackages.unpackFile(dbFilePath) then
+    if not TestPackages.unpackFile(dbFilePath, ext) then
         return nil
     end
 
