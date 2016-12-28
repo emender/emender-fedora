@@ -67,7 +67,7 @@ TestPackages = {
     availablePackages = {},
     allRepositories = {},
     -- List of commands written after command yum, which are useful for this test.
-    yumCommands = {"install", "search", "remove",
+    yumdnfCommands = {"install", "search", "remove",
                 "upgrade", "downgrade", "erase", "update",
                 "reinstall", "groupinstall"},
     packagesBlacklist = {"all"},
@@ -115,7 +115,7 @@ end
 --
 --
 function TestPackages.prepareTables()
-    TestPackages.yumCommands = table.setValueToKey(TestPackages.yumCommands)
+    TestPackages.yumdnfCommands = table.setValueToKey(TestPackages.yumdnfCommands)
     TestPackages.packagesBlacklist = table.setValueToKey(TestPackages.packagesBlacklist)
 end
 
@@ -307,13 +307,17 @@ function TestPackages.findInCommandTag()
                 end
             end
 
-        -- If in command is word "yum" then look at it.
-        elseif command:match(".*yum .*") then
+        -- If in command is word "yum" or "dnf" then look at it.
+        elseif command:match(".*yum .*") or command:match(".*dnf .*") then
             local wordCounter = 1
             local inDoublequotes = false
             local groupInstall = false
+            if command:match(".*yum .*") then
+                command = command:gsub(".*yum ", "")
+            elseif command:match(".*dnf .*") then
+                command = command:gsub(".*dnf ", "")
+            end
 
-            command = command:gsub(".*yum ", "")
             local wholeGroup = ""
 
             for word in command:gmatch("%S+") do
@@ -323,7 +327,7 @@ function TestPackages.findInCommandTag()
                 if word:match("^[^%-/]") then
                     wordCounter = wordCounter + 1
                     if wordCounter == 2 then
-                        if not TestPackages.yumCommands[word] then break end
+                        if not TestPackages.yumdnfCommands[word] then break end
                         if word:match("groupinstall") then groupInstall = true end
                     elseif wordCounter >= 3 then
                         -- Group install. We need to hadle these situations:
