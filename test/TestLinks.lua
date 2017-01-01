@@ -19,27 +19,50 @@ TestLinks = {
         description = "Verify that all external links are functional.",
         authors = "Jaromir Hradilek, Pavel Vomacka",
         emails = "jhradilek@redhat.com, pvomacka@redhat.com",
-        changed = "2015-12-21",
+        changed = "2016-11-19",
         tags = {"DocBook", "Release"}
     },
     xmlObj = nil,
     pubObj = nil,
     allLinks = nil,
     language = "en-US",
-    requires = {"curl", "xmllint", "xmlstarlet"},
+    forbiddenLinks = nil,
+    forbiddenLinksTable = {},
+    requires = {"curl", "xmllint", "xsltproc"},
     exampleList = {"example%.com", "example%.edu", "example%.net", "example%.org",
-                 "localhost", "127%.0%.0%.1", "::1"}
+                 "localhost", "127%.0%.0%.1", "::1"},
+    HTTP_OK_CODE = "200",
+    FTP_OK_CODE = "226",
+    curlCommand = "curl -4Ls --insecure --post302 --connect-timeout 5 --retry 5 --retry-delay 3 --max-time 20 -A 'Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0' ",
+    curlDisplayHttpStatusAndEffectiveURL = "-w \"%{http_code} %{url_effective}\" -o /dev/null "
 }
-
--- NOTE: mallard library missing
-
 
 --
 --- Parse links from the document.
 --
 --  @return table with links
 function TestLinks.findLinks()
-    return TestLinks.xmlObj:getAttributesOfElement("url", "ulink")
+    local links  = TestLinks.xmlObj:getAttributesOfElement("href", "link")
+    local ulinks = TestLinks.xmlObj:getAttributesOfElement("url",  "ulink")
+    if links then
+        warn(#links .. " link tag(s) found.")
+    else
+        warn("No link tag found.")
+    end
+    if ulinks then
+        warn(#ulinks .. " ulink tag(s) found.")
+    else
+        warn("No ulink tag found.")
+    end
+    if links then
+        if ulinks then
+            return table.appendTables(links, ulinks)
+        else
+            return links
+        end
+    else
+        return ulinks
+    end
 end
 
 
@@ -74,40 +97,48 @@ function TestLinks.composeCommand(links)
 
     local command =  [[ checkLink() {
 
-    curl -4ILks --post302 --connect-timeout 5 --retry 1 --max-time 10 -A 'Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0' $1 > /dev/null
-    echo "$1______$?"
+    echo -n "$1 "
+    curl -4Ls --insecure --post302 --connect-timeout 5 --retry 5 --retry-delay 3 --max-time 20 -A 'Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0' -w "%{http_code} %{url_effective}" -o /dev/null $1 | tail -n 1
     }
 
     export -f checkLink
     echo -e ']] .. links .. [[' | xargs -d'\n' -n1 -P0 -I url bash -c 'echo `checkLink url`' ]]
     -- This calls curl. Curl with these parameters can run parallelly (as many processes as OS allows).
-    -- Maximum time for each link is 5 seconds. Output of function checkLink is:
-    --                                                        tested_url______exit_code
 
     return command
 end
 
 
 --
---- Runs command which checks all links and then parse output of this command.
+--- Runs command which tries all links and then parse output of this command.
 --  In the ouput table is information about each link in this format: link______exitCode.
 --  link is link, exitCode is exit code of curl command, it determines which error occured.
 --  These two information are separated by six underscores.
 --
 --  @param links string with links separated by new line
 --  @return list with link and exit code
-function TestLinks.checkLinks(links)
+function TestLinks.tryLinks(links)
     local list = {}
 
     local output = execCaptureOutputAsTable(TestLinks.composeCommand(links))
 
     for _, line in ipairs(output) do
-        local link, exitCode = line:match("(.+)______(%d+)$")
-        list[link] = exitCode
+
+        -- line should consist of three parts separated by spaces:
+        -- 1) original URL (as written in document)
+        -- 2) HTTP code (200, 404 etc.)
+        -- 3) final URL (it could differ from the original URL if request redirection has been performed)
+        local originalUrl, httpCode, effectiveUrl = line:match("(%g+) (%d+) (.+)$")
+        local result = {}
+        result.originalUrl = originalUrl
+        result.effectiveUrl = effectiveUrl
+        result.httpCode = httpCode
+        list[effectiveUrl] = result
     end
 
     return list
 end
+
 
 --
 --- Function that find all links to anchors.
@@ -167,15 +198,56 @@ function TestLinks.setUp()
     dofile(getScriptDirectory() .. "lib/publican.lua")
 
     -- Create publican object.
-    TestLinks.pubObj = publican.create("publican.cfg")
+    if path.file_exists("publican.cfg") then
+        TestLinks.pubObj = publican.create("publican.cfg")
 
-    -- Create xml object.
-    TestLinks.xmlObj = xml.create(TestLinks.pubObj:findMainFile())
+        -- Create xml object.
+        TestLinks.xmlObj = xml.create(TestLinks.pubObj:findMainFile())
 
-    -- Print information about searching links.
-    warn("Searching for links in the book ...")
-    TestLinks.allLinks = TestLinks.findLinks()
+        -- Print information about searching links.
+        warn("Searching for links in the book ...")
+        TestLinks.allLinks = TestLinks.findLinks()
+    else
+        fail("publican.cfg does not exist")
+    end
+
+    if TestLinks.forbiddenLinks then
+        warn("Found forbiddenLinks CLI option: " .. TestLinks.forbiddenLinks)
+        local links = TestLinks.forbiddenLinks:split(",")
+        for _,link in ipairs(links) do
+            warn("Adding following pattern into black list: " .. link)
+            -- insert into table
+            TestLinks.forbiddenLinksTable[link] = link
+        end
+    end
 end
+
+
+--
+-- Replaces the ftp:// protocol specification by http://
+--
+function ftp2httpUrl(link)
+    if link:startsWith("ftp://") then
+        return link:gsub("^ftp://", "http://")
+    else
+        return link
+    end
+end
+
+
+
+--
+-- Check if one selected link is accessible.
+--
+function tryOneLink(linkToCheck)
+    local command = TestLinks.curlCommand .. TestLinks.curlDisplayHttpStatusAndEffectiveURL .. linkToCheck .. " | tail -n 1"
+    local output = execCaptureOutputAsTable(command)
+    -- this function returns truth value only if:
+    -- output must be generated, it should contain just one line
+    -- and on the beginning of this line is HTTP status code 200 OK
+    return output and #output==1 and string.startsWith(output[1], TestLinks.HTTP_OK_CODE)
+end
+
 
 
 --
@@ -188,24 +260,71 @@ function TestLinks.testAllLinks()
     end
 
     -- Convert list of links into string and then check all links using curl.
-    local checkedLinks = TestLinks.checkLinks(TestLinks.convertListForMultiprocess())
+    local checkedLinks = TestLinks.tryLinks(TestLinks.convertListForMultiprocess())
 
     -- Go through all links and print the results out.
-    for link, exitCode in pairs(checkedLinks) do
-        if TestLinks.isAnchor(link) then
-            warn(link .. " - Anchor")
-        elseif TestLinks.mailOrFileLink(link) then
+    for linkValue, result in pairs(checkedLinks) do
+        local exitCode = result.httpCode
+        local originalUrl = result.originalUrl
+        local effectiveUrl = result.effectiveUrl
+        if TestLinks.isAnchor(originalUrl) then
+            warn(originalUrl .. " - Anchor")
+        elseif TestLinks.mailOrFileLink(originalUrl) then
             -- Mail or file link - warn
-            warn(link)
-        elseif TestLinks.isLinkFromList(link, TestLinks.exampleList) then
+            warn(originalUrl)
+        elseif TestLinks.isLinkFromList(originalUrl, TestLinks.exampleList) then
             -- Example or localhost - OK
-            warn(link .. " - Example")
+            warn(originalUrl .. " - Example")
         else
             -- Check exit code of curl command.
-            if exitCode == "0" then
-                pass(link)
+            if exitCode == TestLinks.HTTP_OK_CODE or exitCode == TestLinks.FTP_OK_CODE then
+                -- special case for FTP
+                if linkValue:startsWith("ftp://") then
+                    local htmlLink = ftp2httpUrl(linkValue)
+                    if tryOneLink(htmlLink) then
+                        -- ftp link is ok AND http link is ok as well
+                        -- -> display suggestion to writer that he/she should use http:// instead of ftp://
+                        fail("Please use HTTP protocol instead of FTP. Current: " .. linkValue .. " Suggested: " .. htmlLink)
+                    else
+                        -- only ftp:// link is accessible
+                        pass(linkValue)
+                    end
+                else
+                    pass(linkValue)
+                end
             else
-                fail(link)
+                -- the URL is not accessible -> the test should fail
+                -- if the request has been redirected to another URL, show the original URL and redirected one
+                if originalUrl ~= effectiveUrl then
+                    fail("URL in document: " .. originalUrl .. " Redirected URL: " .. effectiveUrl)
+                else
+                -- no redirection -> show the original URL as is written in the document
+                    fail("URL to check: " .. originalUrl, originalUrl)
+                end
+            end
+        end
+    end
+end
+
+
+--
+--- Test whether some links does not match forbidden patterns.
+--
+function TestLinks.testForbiddenLinks()
+    if not TestLinks.forbiddenLinks then
+        warn("--XforbiddenLinks is not used, skipping")
+        return
+    end
+
+    if table.isEmpty(TestLinks.allLinks) then
+        pass("No links found.")
+        return
+    end
+
+    for _,link in ipairs(TestLinks.allLinks) do
+        for __,forbiddenLink in pairs(TestLinks.forbiddenLinksTable) do
+            if string.find(link, forbiddenLink, 1, true) then
+                fail(link .. " is forbidden")
             end
         end
     end
