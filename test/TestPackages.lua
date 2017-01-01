@@ -29,7 +29,7 @@ TestPackages = {
     pubObj = nil,
     --======================= Configurable variables =========================--
     product = "Fedora",
-    version = "24",
+    version = "25",
     architectures = "x86_64", -- Order of architectures determines the order of repositories in which the test tries to find package.
     beta = 0,
     strict = 0,
@@ -72,7 +72,7 @@ TestPackages = {
                 "reinstall", "groupinstall"},
     packagesBlacklist = {"all"},
     -- Table which is used to convert architecture name from package to architecture name we are using.
-    architecturesTable = {["x86_64"]="x86_64", ["i686"]="x86_64", ["amd64"]="x86_64", ["i386"] = "i386", ["noarch"]= nil}, -- noarch option just for sure that we cover all posibilities.
+    architecturesTable = {["x86_64"]="x86_64", ["i686"]="i386", ["i586"] = "i386", ["amd64"]="x86_64", ["i386"] = "i386", ["noarch"]= nil}, -- noarch option just for sure that we cover all posibilities.
 }
 
 
@@ -178,15 +178,16 @@ function TestPackages.parsePackageName(package)
         -- For packages only with version and name.
         packageFunction = reversedName:gmatch("([^%-]*)%-(.*)")
         version, name = packageFunction()
-    elseif package:match("%.[ixa][386no][86da][6_r][64c]?[4h]?") then
+    elseif package:match("%.[ixa][3856no][86da][6_r][64c]?[4h]?") then
         ------
         --  These architecture names are supported:
         --  ##### i386:
         --  i386
+        --  i586
+        --  i686
         --
         --  ##### x64_86:
         --  x86_64
-        --  i686
         --  amd64
         --
         --  ##### others:
@@ -620,7 +621,7 @@ function TestPackages.getAvailableGroups(grFilePath)
 
     -- Create XML object for searching group names.
     local grObj = xml.create(grFilePath)
-    local groups = grObj:parseXml("//group/id/text()|//group/name[1]/text()")
+    local groups = grObj:parseXml("//group/id/text()|//group/name[1]/text()|//environment/id/text()|//environment/name[1]/text()")
 
     -- If at least on group was found then return converted list.
     if groups then
