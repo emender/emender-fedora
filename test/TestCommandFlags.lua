@@ -325,30 +325,34 @@ end
 --
 --
 function TestCommandFlags.testFlags()
-    for whole_command, flags_table in pairs(TestCommandFlags.commands) do
+    if not TestCommandFlags.commands then
+        warn("No command found...")
+    else
+        for whole_command, flags_table in pairs(TestCommandFlags.commands) do
 
-        local getCommandName = whole_command:gmatch("([^%s]*)")
-        local command = getCommandName()
+            local getCommandName = whole_command:gmatch("([^%s]*)")
+            local command = getCommandName()
 
-        if flags_table[1] then
-            local availableCommandFlags = TestCommandFlags.commandsFlags[command]
-            if type(availableCommandFlags) == "nil" then
-                warn ("Command **" .. command .. "** does not exists in DB. From command: **" .. whole_command .. "**")
-            elseif type(availableCommandFlags) == "boolean" then
-                warn("Command **" .. command .. "** does not have any flags in DB. From command: **" .. whole_command .. "**")
-            else
-                local availableCommandFlags = TestCommandFlags.convertList(availableCommandFlags)
-                for flag, _ in pairs(flags_table[1]) do
-                    if availableCommandFlags[flag] then
-                        pass("Flag **" .. flag .. "** from command **" .. whole_command .. "** exists.")
-                    else
-                        -- Check whether flag is not compossed from more one letter
-                        -- flags
-                        local composedFlag = TestCommandFlags.checkComposedFlag(flag, availableCommandFlags)
-                        if composedFlag then
-                            pass("Flag **" .. flag .. "** from command **" .. whole_command .. "** exists. NOTE: composed flag.")
+            if flags_table[1] then
+                local availableCommandFlags = TestCommandFlags.commandsFlags[command]
+                if type(availableCommandFlags) == "nil" then
+                    warn ("Command **" .. command .. "** does not exists in DB. From command: **" .. whole_command .. "**")
+                elseif type(availableCommandFlags) == "boolean" then
+                    warn("Command **" .. command .. "** does not have any flags in DB. From command: **" .. whole_command .. "**")
+                else
+                    local availableCommandFlags = TestCommandFlags.convertList(availableCommandFlags)
+                    for flag, _ in pairs(flags_table[1]) do
+                        if availableCommandFlags[flag] then
+                            pass("Flag **" .. flag .. "** from command **" .. whole_command .. "** exists.")
                         else
-                            fail("Flag **" .. flag .. "** from command **" .. whole_command .. "** does not exists.")
+                            -- Check whether flag is not compossed from more one letter
+                            -- flags
+                            local composedFlag = TestCommandFlags.checkComposedFlag(flag, availableCommandFlags)
+                            if composedFlag then
+                                pass("Flag **" .. flag .. "** from command **" .. whole_command .. "** exists. NOTE: composed flag.")
+                            else
+                                fail("Flag **" .. flag .. "** from command **" .. whole_command .. "** does not exists.")
+                            end
                         end
                     end
                 end
@@ -363,19 +367,23 @@ end
 --
 --
 function TestCommandFlags.testCommands()
-    local alreadyTested = {}
-    for wholeCommand, _ in pairs(TestCommandFlags.commands) do
-        local getCommandName = wholeCommand:gmatch("([^%s]*)")
-        local command = getCommandName()
-        if not alreadyTested[command] and command:match("^[_%-%w]*$") then
-            if TestCommandFlags.commandsFlags[command] then
-                pass("Command **" .. command .. "** exists.")
-            else
-                fail("Command **" .. command .. "** does not exists.")
-            end
+    if not TestCommandFlags.commands then
+        warn("No command found...")
+    else
+        local alreadyTested = {}
+        for wholeCommand, _ in pairs(TestCommandFlags.commands) do
+            local getCommandName = wholeCommand:gmatch("([^%s]*)")
+            local command = getCommandName()
+            if not alreadyTested[command] and command:match("^[_%-%w]*$") then
+                if TestCommandFlags.commandsFlags[command] then
+                    pass("Command **" .. command .. "** exists.")
+                else
+                    fail("Command **" .. command .. "** does not exists.")
+                end
 
-            -- Add command to the table where are already tested commands.
-            alreadyTested[command] = true
+                -- Add command to the table where are already tested commands.
+                alreadyTested[command] = true
+            end
         end
     end
 end
