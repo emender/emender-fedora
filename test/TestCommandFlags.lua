@@ -52,6 +52,17 @@ TestCommandFlags = {
 
 
 --
+--- Prints information about current test configuration.
+--
+function TestCommandFlags.printInformation()
+    local content = "Current test configuration: \n\tProduct: " .. TestCommandFlags.product .. "\n\tVersion: "
+                   .. TestCommandFlags.version
+
+    -- Print information about test configuration.
+    warn(content)
+end
+
+--
 --- Function which convert list from {[1]="a", [2]="b", etc.}
 --  to {[a]=true. [b]=true, etc.}. Just because of speed
 --  of finding items.
@@ -287,6 +298,8 @@ function TestCommandFlags.setUp()
     dofile(getScriptDirectory() .. "lib/publican.lua")
     dofile(getScriptDirectory() .. "lib/docbook.lua")
     dofile(getScriptDirectory() .. "lib/sql.lua")
+
+    TestCommandFlags.printInformation()
 
     -- Create publican and xml objects.
     TestCommandFlags.publObj = publican.create("publican.cfg")
