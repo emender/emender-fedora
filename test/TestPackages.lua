@@ -740,25 +740,25 @@ end
 --
 -- @return list with composed package list.
 function TestPackages.parseComposedPackages(package)
-  local list = {}
+    local list = {}
 
-  -- Substitute {example,example2} from the package name
-  local parseFunction = package:gmatch("(.*){(.*)}(.*)")
-  local first, second, third = parseFunction()
-  local counter = 0
-  local pattern = "([%w%-]+)"
+    -- Substitute {example,example2} from the package name
+    local parseFunction = package:gmatch("(.*){(.*)}(.*)")
+    local first, second, third = parseFunction()
+    local counter = 0
+    local pattern = "([%w%-]+)"
 
-  -- Compose whole package name and save it to the list.
-  if second:match("^,") or second:match(",,") or second:match(",$") then
-    pattern = "([%w%-]*)"
-  end
+    -- Compose whole package name and save it to the list.
+    if second:match("^,") or second:match(",,") or second:match(",$") then
+        pattern = "([%w%-]*)"
+    end
 
-  for word in second:gmatch(pattern) do
-    list[first .. word .. third] = true
-  end
+    for word in second:gmatch(pattern) do
+        list[first .. word .. third] = true
+    end
 
-  -- Return list with the package names.
-  return list
+    -- Return list with the package names.
+    return list
 end
 
 
