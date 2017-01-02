@@ -262,6 +262,7 @@ function TestPackages.findInCommandTag()
 
     -- Get list of all commands
     local commands = TestPackages.xmlObj:getElements("command")
+    if not commands then return nil end
 
     -- Prepare list for package names from command tag and information about them.
     local packages = {}
