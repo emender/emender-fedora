@@ -19,7 +19,7 @@ TestPackages = {
         description = "Verify that all packages have correct names.",
         authors = "Pavel Vomacka",
         emails = "pvomacka@redhat.com",
-        changed = "2015-28-12",
+        changed = "2017-01-01",
         tags = {"DocBook", "Release"},
     },
     requires = {"curl", "sqlite3", "unxz", "bunzip2"},
@@ -35,7 +35,7 @@ TestPackages = {
     strict = 0,
     context = 0,
     packageWhiteList = "",
-    lowestSupportedVersion = 21,
+    lowestSupportedVersion = 23,
     --------------------------------- URLS -------------------------------------
     repoTable = {["f23-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/23/Everything/x86_64/os"},
                  ["f23-debuginfo-x86_64"]={["url"]="http://mirrors.nic.cz/fedora/linux/releases/23/Everything/x86_64/debug"},
@@ -69,16 +69,12 @@ TestPackages = {
     -- List of commands written after command yum, which are useful for this test.
     yumdnfCommands = {"install", "search", "remove",
                 "upgrade", "downgrade", "erase", "update",
-                "reinstall", "groupinstall"},
+                "reinstall", "group"},
+    groupCommands = {"install", "remove", "upgrade"},
     packagesBlacklist = {"all"},
     -- Table which is used to convert architecture name from package to architecture name we are using.
     architecturesTable = {["x86_64"]="x86_64", ["i686"]="i386", ["i586"] = "i386", ["amd64"]="x86_64", ["i386"] = "i386", ["noarch"]= nil}, -- noarch option just for sure that we cover all posibilities.
 }
-
-
-
--- NOTE: Debuginfo cant check version.
--- NOTE: Improvement - test will say that the package was not found only in repositories in which test tried to find the package.
 
 
 --
@@ -113,10 +109,10 @@ end
 --- Prepares tables with allowed yum commands and black list of yum command.
 --  Preparation means converting table into [value]=true format.
 --
---
 function TestPackages.prepareTables()
     TestPackages.yumdnfCommands = table.setValueToKey(TestPackages.yumdnfCommands)
     TestPackages.packagesBlacklist = table.setValueToKey(TestPackages.packagesBlacklist)
+    TestPackages.groupCommands = table.setValueToKey(TestPackages.groupCommands)
 end
 
 
@@ -329,17 +325,19 @@ function TestPackages.findInCommandTag()
                     wordCounter = wordCounter + 1
                     if wordCounter == 2 then
                         if not TestPackages.yumdnfCommands[word] then break end
-                        if word:match("groupinstall") then groupInstall = true end
+                        if word:match("group") then groupInstall = true end
                     elseif wordCounter >= 3 then
                         -- Group install. We need to hadle these situations:
-                        -- yum install @"KDE Desktop"
-                        -- yum install @kde-desktop
-                        -- yum groupinstall @"Virtualization Tools"
-                        -- yum groupinstall "Virtualization Tools"
-                        -- yum groupinstall @kde-desktop
-                        -- yum groupinstall kde-desktop
-                        -- yum groupinstall KDE
-                        if word:match("^@.*") or groupInstall or inDoublequotes then
+                        -- yum(dnf) install @"KDE Desktop"
+                        -- yum(dnf) install @kde-desktop
+                        -- yum(dnf) group install @"Virtualization Tools"
+                        -- yum(dnf) group install "Virtualization Tools"
+                        -- yum(dnf) group install @kde-desktop
+                        -- yum(dnf) group install kde-desktop
+                        -- yum(dnf) group install KDE
+                        if groupInstall and wordCounter == 3 and TestPackages.groupCommands[word] then
+                            skip = true
+                        elseif word:match("^@.*") or groupInstall or inDoublequotes then
                             packageType = "group"
                             -- It is necessary to concacenate words until next double quotes
                             if word:match("^@\".*") or word:match("^\".*") or inDoublequotes then
