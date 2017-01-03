@@ -481,9 +481,10 @@ end
 
 
 --
---- Unpacks files using unxz. The unpacked file will be saved in the same destination as source file.
+--- Unpacks files using unxz or bunzip2. The unpacked file will be saved in the same destination as source file.
 --
 --  @param dbFilePath destination path
+--  @param ext extension
 --  @return true when unapcking is successful. nil otherwise.
 function TestPackages.unpackFile(dbFilePath, ext)
     local unzip_cmd = TestPackages.unzipTools[ext]
