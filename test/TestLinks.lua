@@ -111,9 +111,6 @@ end
 
 --
 --- Runs command which tries all links and then parse output of this command.
---  In the ouput table is information about each link in this format: link______exitCode.
---  link is link, exitCode is exit code of curl command, it determines which error occured.
---  These two information are separated by six underscores.
 --
 --  @param links string with links separated by new line
 --  @return list with link and exit code
